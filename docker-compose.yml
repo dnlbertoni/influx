@@ -11,45 +11,65 @@ services:
     networks:
       - "monitoring"
 
-  chronograf:
-    container_name: chronograf
-    image: chronograf:latest
-    ports:
-      - 8888:8888
-    volumes:
-      - "./chronograf:/var/lib/chronograf"
-    networks:
-      - "monitoring"
-
   telegraf:
     container_name: telegraf
     image: telegraf:latest
-
     volumes:
       - "./telegraf.conf:/etc/telegraf/telegraf.conf:ro"
       - "/var/run/docker.sock:/var/run/docker.sock"
     networks:
       - "monitoring"
 
-  kapacitor:
-    container_name: kapacitor
-    image: kapacitor:latest
-    environment:
-      - KAPACITOR_INFLUXDB_0_URLS_0=http://influxdb:8086
-      - KAPACITOR_HOSTNAME=kapacitor
-      - KAPACITOR_LOGGING_LEVEL=INFO
-      - KAPACITOR_REPORTING_ENABLED=false
+  prometheus:
+    image: prom/prometheus
     volumes:
-      - "./kapacitor:/var/lib/kapacitor"
+      - ./config:/prometheus
+      - ./data/prometheus:/data
+    command:
+      - '--config.file=/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/data'
     ports:
-      - 9092:9092
+      - 9090:9090
+    depends_on:
+      - alertmanager
+    restart: always
     networks:
-      - "monitoring"
+      - monitoring 
+
+  alertmanager:
+    image: prom/alertmanager
+    volumes:
+      - ./config:/prometheus
+      - ./data/alertmanager:/data
+    command:
+      - '--config.file=/prometheus/alertmanager.yml'
+      - '--storage.path=/data'
+    ports:
+      - 9093:9093
+    networks:
+      - monitoring 
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - '3000:3000'
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      - ./grafana/provisioning/:/etc/grafana/provisioning
+      - ./grafana/dashboards/:/etc/grafana/dashboards
+    depends_on:
+      - influxdb
+      - prometheus
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USERNAME}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+    networks:
+      - monitoring   
 
 
 volumes:
-  chronograf:
   influxdb:
+  grafana-storage:
 
 
 networks:
