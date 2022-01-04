@@ -1,0 +1,56 @@
+version: "3.3"
+
+services:
+  influxdb:
+    container_name: influxdb
+    image: influxdb:latest
+    volumes:
+      - influxdb:/var/lib/influxdb
+    ports:
+      - 8086:8086
+    networks:
+      - "monitoring"
+
+  chronograf:
+    container_name: chronograf
+    image: chronograf:latest
+    ports:
+      - 8888:8888
+    volumes:
+      - "./chronograf:/var/lib/chronograf"
+    networks:
+      - "monitoring"
+
+  telegraf:
+    container_name: telegraf
+    image: telegraf:latest
+
+    volumes:
+      - "./telegraf.conf:/etc/telegraf/telegraf.conf:ro"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    networks:
+      - "monitoring"
+
+  kapacitor:
+    container_name: kapacitor
+    image: kapacitor:latest
+    environment:
+      - KAPACITOR_INFLUXDB_0_URLS_0=http://influxdb:8086
+      - KAPACITOR_HOSTNAME=kapacitor
+      - KAPACITOR_LOGGING_LEVEL=INFO
+      - KAPACITOR_REPORTING_ENABLED=false
+    volumes:
+      - "./kapacitor:/var/lib/kapacitor"
+    ports:
+      - 9092:9092
+    networks:
+      - "monitoring"
+
+
+volumes:
+  chronograf:
+  influxdb:
+
+
+networks:
+  monitoring:
