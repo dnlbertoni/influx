@@ -1,6 +1,14 @@
 version: "3.3"
 
 services:
+  pagger:
+    container_name: sms
+    build: ./pagger
+    ports:
+      - 3030:3030
+    networks:
+      - "monitoring"
+
   influxdb:
     container_name: influxdb
     image: influxdb:latest
